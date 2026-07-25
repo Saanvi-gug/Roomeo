@@ -1,4 +1,4 @@
-# RoomieMatch — Frontend
+# Roomeo — Frontend
 
 React (Vite) + Tailwind CSS v4 + React Router. Runs entirely on mock data
 right now — no backend needed to develop or demo the full user flow.
