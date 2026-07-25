@@ -21,7 +21,7 @@ export default function Layout() {
       <header className="border-b border-border bg-card">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to="/dashboard" className="font-display text-xl font-semibold text-ink">
-            RoomieMatch
+            Roomeo
           </Link>
           {isAuthenticated && (
             <nav className="flex items-center gap-1">
