@@ -27,6 +27,7 @@ MATCHING LOGIC OVERVIEW
 """
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 from math import radians, sin, cos, sqrt, atan2
@@ -34,6 +35,14 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 MATCH_THRESHOLD = 0.80          # only show matches at or above 80%
 MAX_DISTANCE_KM = 5             # locality distance hard filter
@@ -55,6 +64,7 @@ AREA_COORDINATES = {
     "Rohini": (28.7495, 77.0565),
     "Lajpat Nagar": (28.5677, 77.2434),
     "Karol Bagh": (28.6519, 77.1909),
+    "Green Park": (28.5588, 77.2028),
     # add more localities as needed
 }
 

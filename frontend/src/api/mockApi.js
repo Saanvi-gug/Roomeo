@@ -12,7 +12,7 @@
 // `wait(ms)` fakes network latency so loading spinners actually have
 // something to show during development, instead of resolving instantly.
 // ---------------------------------------------------------------------------
-import { emptyProfile, mockMatches, mockIncomingRequests } from "../data/mockData";
+import { emptyProfile, otherUsers, mockIncomingRequests } from "../data/mockData";
 
 const wait = (ms = 500) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -68,21 +68,186 @@ export async function saveProfile(answers) {
   return { ...session.profile };
 }
 
+// --- ML Service Integration & Mappings --------------------------------------
+const ML_SERVICE_URL = "http://127.0.0.1:8000";
+
+function mapFrontendToMlProfile(profile) {
+  const genderMap = { "Male": "male", "Female": "female", "Other": "other" };
+  const preferredGenderMap = { "Male": "male", "Female": "female", "Any": "any" };
+  const smokerMap = { "Yes": "yes", "No": "no", "Occasional": "occasional" };
+  const drinkerMap = { "Yes": "yes", "No": "no", "Occasional": "occasional" };
+  const jobMap = { "Student": "student", "Working Professional": "working", "Both": "both" };
+  const preferredJobMap = { "Student": "student", "Professional": "working", "Either": "any" };
+  const scheduleMap = { "Mostly daytime": "day", "Mostly evening-night": "night", "Varies": "rotational" };
+  const workModeMap = { "Work From Home": "wfh", "Work From Office": "wfo", "Hybrid": "hybrid" };
+
+  return {
+    gender: genderMap[profile.gender] || "other",
+    preferredRoommateGender: preferredGenderMap[profile.preferredRoommateGender] || "any",
+    city: profile.city || "",
+    locality: profile.locality || "",
+    budget: parseFloat(profile.budget) || 0.0,
+
+    smoker: smokerMap[profile.smokes] || "no",
+    okayWithSmoker: profile.okWithSmoker === "Yes",
+    drinker: drinkerMap[profile.drinks] || "no",
+    okayWithDrinker: profile.okWithDrinker === "Yes",
+
+    jobStatus: jobMap[profile.jobStatus] || "student",
+    preferredRoommateJobStatus: preferredJobMap[profile.preferredRoommateJobStatus] || "any",
+    workShift: scheduleMap[profile.schedule] || "day",
+    okayWithDifferentShift: profile.okWithDifferentSchedule === "Yes",
+    workMode: profile.workMode ? (workModeMap[profile.workMode] || null) : null,
+    needsDaytimePrivacy: profile.preferQuietWorkHours === "Yes, I'd prefer that",
+
+    foodPref: (profile.food || "veg").toLowerCase(),
+    socialLevel: parseInt(profile.social) || 3,
+    guestsFreq: (profile.guests || "never").toLowerCase(),
+    cleanliness: parseInt(profile.cleanliness) || 3,
+    sleepCondition: (profile.sleep || "flexible").toLowerCase().replace(" ", "-"),
+    noiseStudyHabits: (profile.noise || "silent").toLowerCase() === "group study" ? "group" : (profile.noise || "silent").toLowerCase(),
+  };
+}
+
+const PRIORITY_FIELDS_MAP = {
+  food: "foodPref",
+  social: "socialLevel",
+  guests: "guestsFreq",
+  cleanliness: "cleanliness",
+  sleep: "sleepCondition",
+  noise: "noiseStudyHabits"
+};
+
+function mapPriorityFields(fields) {
+  if (!fields) return [];
+  return fields.map(f => PRIORITY_FIELDS_MAP[f] || f);
+}
+
+function mapMlToFrontendBreakdown(breakdown) {
+  if (!breakdown) return {};
+  return {
+    food: Math.round((breakdown.foodPref ?? 0) * 100),
+    social: Math.round((breakdown.socialLevel ?? 0) * 100),
+    guests: Math.round((breakdown.guestsFreq ?? 0) * 100),
+    cleanliness: Math.round((breakdown.cleanliness ?? 0) * 100),
+    sleep: Math.round((breakdown.sleepCondition ?? 0) * 100),
+    noise: Math.round((breakdown.noiseStudyHabits ?? 0) * 100)
+  };
+}
+
+let calculatedMatches = [];
+
 // --- /api/matches/* ----------------------------------------------------------
-// Real version: Backend Person B's route sends this user's profile + every
-// other profile to the FastAPI ML service, gets back scores, and only
-// forwards matches scoring >=80 (Section 4 + Section 6). Contact info is
-// never included here - only name + the profile fields the person entered.
 export async function getMatches() {
   await wait(700);
-  return mockMatches;
+  if (!session.isAuthenticated || !session.profile.city) {
+    return [];
+  }
+
+  try {
+    const userMlProfile = mapFrontendToMlProfile(session.profile);
+    const mappedPriorities = mapPriorityFields(session.profile.priorityFields);
+
+    const promises = otherUsers.map(async (candidate) => {
+      const candidateMlProfile = mapFrontendToMlProfile(candidate);
+      const response = await fetch(`${ML_SERVICE_URL}/compatibility-score`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userProfile: userMlProfile,
+          candidateProfile: candidateMlProfile,
+          priorityFields: mappedPriorities
+        })
+      });
+      if (!response.ok) {
+        throw new Error(`ML service returned status ${response.status}`);
+      }
+      const result = await response.json();
+      return { candidate, result };
+    });
+
+    const results = await Promise.all(promises);
+    calculatedMatches = results
+      .filter(({ result }) => !result.excluded)
+      .map(({ candidate, result }) => ({
+        matchId: `m-${candidate.id}`,
+        user: {
+          id: candidate.id,
+          name: candidate.name,
+          city: candidate.city,
+          locality: candidate.locality,
+          budget: candidate.budget,
+          gender: candidate.gender,
+          jobStatus: candidate.jobStatus,
+          workMode: candidate.workMode,
+          schedule: candidate.schedule
+        },
+        score: Math.round(result.score * 100),
+        breakdown: mapMlToFrontendBreakdown(result.breakdown),
+        priorityFields: session.profile.priorityFields
+      }));
+
+    return calculatedMatches;
+  } catch (err) {
+    console.error("Error fetching matches from ML service:", err);
+    throw new Error("Unable to connect to the matching service. Please make sure the ML service is running.");
+  }
 }
 
 export async function getMatchById(matchId) {
   await wait(300);
-  const match = mockMatches.find((m) => m.matchId === matchId);
-  if (!match) throw new Error("Match not found.");
-  return match;
+  let match = calculatedMatches.find((m) => m.matchId === matchId);
+  if (match) return match;
+
+  // If not in calculatedMatches, calculate it dynamically on the fly
+  const candidateId = matchId.replace("m-", "");
+  const candidate = otherUsers.find((u) => u.id === candidateId);
+  if (!candidate) throw new Error("Match not found.");
+
+  try {
+    const userMlProfile = mapFrontendToMlProfile(session.profile);
+    const mappedPriorities = mapPriorityFields(session.profile.priorityFields);
+    const candidateMlProfile = mapFrontendToMlProfile(candidate);
+
+    const response = await fetch(`${ML_SERVICE_URL}/compatibility-score`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userProfile: userMlProfile,
+        candidateProfile: candidateMlProfile,
+        priorityFields: mappedPriorities
+      })
+    });
+    if (!response.ok) {
+      throw new Error(`ML service returned status ${response.status}`);
+    }
+    const result = await response.json();
+    if (result.excluded) {
+      throw new Error("This candidate is excluded based on your compatibility filters.");
+    }
+
+    match = {
+      matchId: matchId,
+      user: {
+        id: candidate.id,
+        name: candidate.name,
+        city: candidate.city,
+        locality: candidate.locality,
+        budget: candidate.budget,
+        gender: candidate.gender,
+        jobStatus: candidate.jobStatus,
+        workMode: candidate.workMode,
+        schedule: candidate.schedule
+      },
+      score: Math.round(result.score * 100),
+      breakdown: mapMlToFrontendBreakdown(result.breakdown),
+      priorityFields: session.profile.priorityFields
+    };
+    return match;
+  } catch (err) {
+    console.error("Error fetching match detail from ML service:", err);
+    throw new Error("Unable to connect to the matching service. Please make sure the ML service is running.");
+  }
 }
 
 export async function sendRequest(matchId) {
@@ -93,6 +258,36 @@ export async function sendRequest(matchId) {
 // --- /api/requests/* ----------------------------------------------------------
 export async function getIncomingRequests() {
   await wait(400);
+  if (session.isAuthenticated && session.profile.city) {
+    const userMlProfile = mapFrontendToMlProfile(session.profile);
+    const mappedPriorities = mapPriorityFields(session.profile.priorityFields);
+
+    for (let req of requests) {
+      try {
+        const candidateMlProfile = mapFrontendToMlProfile(req.from);
+        const response = await fetch(`${ML_SERVICE_URL}/compatibility-score`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userProfile: userMlProfile,
+            candidateProfile: candidateMlProfile,
+            priorityFields: mappedPriorities
+          })
+        });
+        if (response.ok) {
+          const result = await response.json();
+          if (!result.excluded) {
+            req.score = Math.round(result.score * 100);
+          } else {
+            // fallback if excluded by new criteria
+            req.score = 70;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to compute request score dynamically:", err);
+      }
+    }
+  }
   return requests;
 }
 

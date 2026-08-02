@@ -168,6 +168,26 @@ function TextField({ label, value, onChange, type = "text", placeholder }) {
   );
 }
 
+function SelectField({ label, value, onChange, options }) {
+  return (
+    <label className="block">
+      <span className="block text-sm font-medium text-ink mb-1">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-4 py-2.5 rounded-xl border border-border bg-card focus:border-primary outline-none transition-colors text-ink"
+      >
+        <option value="" disabled>Select an area</option>
+        {options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 function ChoiceGroup({ label, options, value, onChange }) {
   return (
     <div>
@@ -219,11 +239,11 @@ function LocationStep({ answers, set }) {
     <div className="space-y-5">
       <StepHeading title="Where and how much" subtitle="These are hard filters - candidates must match." />
       <TextField label="City" value={answers.city} onChange={set("city")} placeholder="e.g. Delhi" />
-      <TextField
+      <SelectField
         label="Locality / area"
         value={answers.locality}
         onChange={set("locality")}
-        placeholder="e.g. Hauz Khas"
+        options={["Saket", "Hauz Khas", "Dwarka", "Rohini", "Lajpat Nagar", "Karol Bagh", "Green Park"]}
       />
       <TextField
         label="Monthly budget (₹)"
