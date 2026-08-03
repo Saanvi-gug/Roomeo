@@ -1,2 +1,10 @@
+<<<<<<< HEAD
 node_modules/
 .env
+=======
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+venv/
+>>>>>>> b457bc7d361549a2104c10d8711d5b638c25184d
