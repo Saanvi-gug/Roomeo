@@ -82,6 +82,7 @@ function mapFrontendToMlProfile(profile) {
   const workModeMap = { "Work From Home": "wfh", "Work From Office": "wfo", "Hybrid": "hybrid" };
 
   return {
+    name: profile.name || "",
     gender: genderMap[profile.gender] || "other",
     preferredRoommateGender: preferredGenderMap[profile.preferredRoommateGender] || "any",
     city: profile.city || "",
@@ -247,6 +248,39 @@ export async function getMatchById(matchId) {
   } catch (err) {
     console.error("Error fetching match detail from ML service:", err);
     throw new Error("Unable to connect to the matching service. Please make sure the ML service is running.");
+  }
+}
+
+export async function getMatchAiAnalysis(matchId) {
+  await wait(450); // slight simulated delay for premium feel skeleton loader
+  const candidateId = matchId.replace("m-", "");
+  const candidate = otherUsers.find((u) => u.id === candidateId);
+  if (!candidate) throw new Error("Match not found.");
+
+  try {
+    const userMlProfile = mapFrontendToMlProfile(session.profile);
+    const candidateMlProfile = mapFrontendToMlProfile(candidate);
+
+    const response = await fetch(`${ML_SERVICE_URL}/ai-roommate-analysis`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userProfile: userMlProfile,
+        candidateProfile: candidateMlProfile
+      })
+    });
+    if (!response.ok) {
+      throw new Error(`ML service returned status ${response.status}`);
+    }
+    return await response.json();
+  } catch (err) {
+    console.error("Error fetching AI analysis from ML service:", err);
+    // Dynamic fallback matching profile details if backend fails
+    const jobStr = candidate.jobStatus ? `a ${candidate.jobStatus.toLowerCase()}` : "a potential roommate";
+    return {
+      custom_description: `${candidate.name} is ${jobStr} from ${candidate.locality}, Delhi. They maintain a budget of around ₹${candidate.budget.toLocaleString("en-IN")}/mo and follow a ${candidate.food.toLowerCase()} food preference.`,
+      match_reason: `Based on your compatibility profiles, you and ${candidate.name} share aligned preferences in budgeting, cleanliness levels, and day-to-day habits, facilitating a highly balanced roommate dynamic.`
+    };
   }
 }
 

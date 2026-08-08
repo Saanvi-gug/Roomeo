@@ -26,6 +26,11 @@ MATCHING LOGIC OVERVIEW
 3. Only candidates scoring 80% or higher get returned to the frontend.
 """
 
+import os
+import json
+import re
+import urllib.request
+import urllib.parse
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -84,6 +89,7 @@ def calculate_distance_km(coord1, coord2) -> float:
 # ---------------------------------------------------------
 
 class Profile(BaseModel):
+    name: Optional[str] = None
     # --- hard filter fields ---
     gender: str                      # "male" / "female" / "other"
     preferredRoommateGender: str      # "male" / "female" / "any"
@@ -333,6 +339,164 @@ def compatibility_score(request: MatchRequest):
         return {"excluded": True, "reason": f"score {score} below {MATCH_THRESHOLD} threshold"}
 
     return {"excluded": False, "score": score, "breakdown": breakdown}
+
+
+class AnalysisRequest(BaseModel):
+    userProfile: Profile
+    candidateProfile: Profile
+
+
+def get_gemini_api_key():
+    possible_paths = [
+        os.path.join(os.path.dirname(__file__), ".env"),
+        os.path.join(os.path.dirname(__file__), "..", ".env"),
+        ".env",
+        "../.env"
+    ]
+    for path in possible_paths:
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        if line.strip().startswith("GEMINI_API_KEY"):
+                            parts = line.split("=", 1)
+                            if len(parts) == 2:
+                                val = parts[1].strip()
+                                if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+                                    val = val[1:-1]
+                                return val
+            except Exception as e:
+                print(f"Error reading {path}: {e}")
+    return os.environ.get("GEMINI_API_KEY")
+
+
+def clean_json_response(text: str) -> str:
+    text = text.strip()
+    match = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL)
+    if match:
+        text = match.group(1).strip()
+    return text
+
+
+def call_gemini_api(prompt: str) -> str:
+    key = get_gemini_api_key()
+    if not key:
+        print("GEMINI_API_KEY not found in env or .env file.")
+        raise ValueError("API Key missing")
+
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={key}"
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {"text": prompt}
+                ]
+            }
+        ]
+    }
+    
+    req_body = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=req_body,
+        headers={"Content-Type": "application/json"},
+        method="POST"
+    )
+    
+    with urllib.request.urlopen(req, timeout=8) as response:
+        res_body = response.read().decode("utf-8")
+        res_json = json.loads(res_body)
+        
+        try:
+            return res_json["candidates"][0]["content"]["parts"][0]["text"]
+        except (KeyError, IndexError) as e:
+            print("Failed to parse Gemini response structure:", res_json)
+            raise ValueError("Invalid response structure")
+
+
+@app.post("/ai-roommate-analysis")
+def ai_roommate_analysis(request: AnalysisRequest):
+    user = request.userProfile.dict()
+    candidate = request.candidateProfile.dict()
+    
+    candidate_name = candidate.get("name") or "Your potential roommate"
+    user_name = user.get("name") or "You"
+    
+    prompt = f"""
+You are an expert roommate matchmaking assistant. Analyze the roommate profiles of the User and the Candidate.
+
+User Profile:
+- Name: {user_name}
+- Gender: {user.get('gender')}
+- City: {user.get('city')}
+- Locality: {user.get('locality')}
+- Budget: INR {user.get('budget')}
+- Job Status: {user.get('jobStatus')}
+- Work Mode: {user.get('workMode')}
+- Work Shift: {user.get('workShift')}
+- Food Preference: {user.get('foodPref')}
+- Socializing Level: {user.get('socialLevel')}/5
+- Guest Frequency: {user.get('guestsFreq')}
+- Cleanliness Level: {user.get('cleanliness')}/5
+- Sleep Condition: {user.get('sleepCondition')}
+- Noise Habits: {user.get('noiseStudyHabits')}
+- Smoker: {user.get('smoker')}, Drinker: {user.get('drinker')}
+
+Candidate Profile:
+- Name: {candidate_name}
+- Gender: {candidate.get('gender')}
+- City: {candidate.get('city')}
+- Locality: {candidate.get('locality')}
+- Budget: INR {candidate.get('budget')}
+- Job Status: {candidate.get('jobStatus')}
+- Work Mode: {candidate.get('workMode')}
+- Work Shift: {candidate.get('workShift')}
+- Food Preference: {candidate.get('foodPref')}
+- Socializing Level: {candidate.get('socialLevel')}/5
+- Guest Frequency: {candidate.get('guestsFreq')}
+- Cleanliness Level: {candidate.get('cleanliness')}/5
+- Sleep Condition: {candidate.get('sleepCondition')}
+- Noise Habits: {candidate.get('noiseStudyHabits')}
+- Smoker: {candidate.get('smoker')}, Drinker: {candidate.get('drinker')}
+
+Instructions:
+1. Generate an engaging, positive custom description of {candidate_name} (2-3 sentences) summarizing their lifestyle, profession/studies, and personality. Make it sound warm and welcoming.
+2. Generate a custom matching explanation (2-3 sentences) of why {candidate_name} is a perfect roommate match for {user_name}. Highlight specific overlapping preferences (e.g. both are working professionals, both prefer a clean environment, compatible sleep schedules, similar budgets, or shared food preferences).
+
+Return ONLY a valid JSON object with the following keys, containing no markdown formatting:
+{{
+  "custom_description": "...",
+  "match_reason": "..."
+}}
+"""
+    try:
+        raw_response = call_gemini_api(prompt)
+        clean_response = clean_json_response(raw_response)
+        parsed = json.loads(clean_response)
+        return parsed
+    except Exception as e:
+        print(f"Error generating AI analysis: {e}")
+        # Return fallback values so client doesn't crash
+        job_str = f"a {candidate.get('jobStatus')}" if candidate.get('jobStatus') else "a potential roommate"
+        fallback_desc = f"{candidate_name} is {job_str} currently looking for a compatible shared space in {candidate.get('locality') or 'Delhi'}. They value a budget of around ₹{candidate.get('budget'):,.0f} and maintain a {candidate.get('foodPref') or 'veg'} food preference."
+        
+        shared_points = []
+        if user.get('cleanliness') and candidate.get('cleanliness') and abs(user.get('cleanliness') - candidate.get('cleanliness')) <= 1:
+            shared_points.append("cleanliness standards")
+        if user.get('foodPref') == candidate.get('foodPref'):
+            shared_points.append("shared culinary tastes")
+        if user.get('sleepCondition') == candidate.get('sleepCondition'):
+            shared_points.append("similar sleep schedules")
+        if user.get('budget') and candidate.get('budget') and abs(user.get('budget') - candidate.get('budget')) <= 2000:
+            shared_points.append("aligned budget expectations")
+            
+        points_str = " and ".join(shared_points) if shared_points else "compatible lifestyles"
+        fallback_reason = f"Based on your profile details, you and {candidate_name} have highly matching preferences, including {points_str}. This alignment makes you very compatible housemates."
+        
+        return {
+            "custom_description": fallback_desc,
+            "match_reason": fallback_reason
+        }
 
 
 # ---------------------------------------------------------
