@@ -7,13 +7,14 @@ const saveProfile = async (req, res) => {
 
         const { id } = req.params;
 
-        const updatedUser = await User.findByIdAndUpdate(
-            id,
-            req.body,
-            {
-                new: true
-            }
-        );
+     const updatedUser = await User.findByIdAndUpdate(
+    id,
+    req.body,
+    {
+        new: true,
+        runValidators: true
+    }
+);
 
         res.status(200).json({
             message: "Profile Saved Successfully",

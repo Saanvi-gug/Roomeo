@@ -18,10 +18,9 @@ const app = express();
 // DATABASE CONNECTION
 // ==============================
 
-// MongoDB is temporarily disabled while we fix Atlas.
-// Uncomment the line below once Atlas is working.
 
-// connectDB();
+
+connectDB();
 
 // ==============================
 // MIDDLEWARE

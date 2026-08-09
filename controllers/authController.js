@@ -27,9 +27,13 @@ const registerUser = async (req, res) => {
     });
 
     res.status(201).json({
-      message: "Registration Successful",
-      user
-    });
+    message: "Registration Successful",
+    user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email
+    }
+});
 
   } catch (error) {
     console.log(error);
@@ -73,11 +77,15 @@ const loginUser = async (req, res) => {
       }
     );
 
-    res.status(200).json({
-      message: "Login Successful",
-      token,
-      user
-    });
+  res.status(200).json({
+    message: "Login Successful",
+    token,
+    user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email
+    }
+});
 
   } catch (error) {
 

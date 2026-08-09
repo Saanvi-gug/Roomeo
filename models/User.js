@@ -3,16 +3,19 @@ const mongoose = require("mongoose");
 const userSchema = new mongoose.Schema(
 {
     // Authentication
-    name: {
-        type: String,
-        required: true
-    },
+   name: {
+    type: String,
+    required: true,
+    trim: true
+},
 
-    email: {
-        type: String,
-        required: true,
-        unique: true
-    },
+   email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true
+},
 
     password: {
         type: String,
@@ -55,9 +58,15 @@ const userSchema = new mongoose.Schema(
     okayDifferentSchedule: String,
     workMode: String,
     quietDuringWork: String,
-
     // Non Negotiables
-    nonNegotiables: [String]
+    nonNegotiables: [String],
+
+    // Compatibility Score
+    compatibilityScore: {
+        type: Number,
+        default: 0
+    }
+
 },
 {
     timestamps: true
