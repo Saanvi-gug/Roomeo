@@ -1,8 +1,10 @@
 import { Routes, Route } from "react-router-dom";
 import { AppProvider } from "./context/AppContext";
+
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 
+import Splash from "./pages/Splash";
 import Landing from "./pages/Landing";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
@@ -17,11 +19,15 @@ export default function App() {
     <AppProvider>
       <Routes>
         <Route element={<Layout />}>
-          <Route path="/" element={<Landing />} />
+          
+          {/* Public pages */}
+          <Route path="/" element={<Splash />} />
+          <Route path="/landing" element={<Landing />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Login />} />
           <Route path="/onboarding" element={<Onboarding />} />
 
+          {/* Protected pages */}
           <Route
             path="/dashboard"
             element={
@@ -30,6 +36,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/matches"
             element={
@@ -38,6 +45,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/matches/:matchId"
             element={
@@ -46,6 +54,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/requests"
             element={
@@ -54,6 +63,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
         </Route>
       </Routes>
     </AppProvider>

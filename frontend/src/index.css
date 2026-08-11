@@ -15,7 +15,7 @@
   border     - hairline borders
   muted      - secondary text
 */
-@theme {
+@theme{
   --color-ink: #1E2130;
   --color-surface: #F3F2F9;
   --color-card: #FFFFFF;
@@ -53,4 +53,22 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+@keyframes fadeIn{
+
+from{
+opacity:0;
+transform:scale(.95);
+}
+
+to{
+opacity:1;
+transform:scale(1);
+}
+
+}
+
+.animate-fadeIn{
+animation:fadeIn .8s ease;
 }

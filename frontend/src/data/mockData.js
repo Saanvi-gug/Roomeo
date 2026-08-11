@@ -10,6 +10,15 @@
 // ---------------------------------------------------------------------------
 
 // The 6 "scored" fields from Section 5, used for the compatibility breakdown.
+import avatar1 from "../assets/avatars/avatar-1.jpg";
+import avatar2 from "../assets/avatars/avatar-2.jpg";
+import avatar3 from "../assets/avatars/avatar-3.jpg";
+import avatar4 from "../assets/avatars/avatar-4.jpg";
+import avatar5 from "../assets/avatars/avatar-5.jpg";
+import avatar6 from "../assets/avatars/avatar-6.jpg";
+
+
+
 export const SCORED_FIELDS = [
   { key: "food", label: "Food preference" },
   { key: "social", label: "Socialising level" },
@@ -22,6 +31,7 @@ export const SCORED_FIELDS = [
 // A logged-out "current user" profile shape - filled in by onboarding.
 export const emptyProfile = {
   name: "",
+  avatarId: "",
   email: "",
   city: "",
   locality: "",
@@ -43,8 +53,10 @@ export const emptyProfile = {
   schedule: "",
   okWithDifferentSchedule: "",
   workMode: "",
-  preferQuietWorkHours: "",
-  priorityFields: [],
+preferQuietWorkHours: "",
+workStartTime: "",
+workEndTime: "",
+priorityFields: [],
 };
 
 // Other candidate profiles already "in the database" - used to fake matches.
@@ -52,83 +64,55 @@ export const otherUsers = [
   {
     id: "u1",
     name: "Ananya Rao",
-    email: "ananya.rao@example.com",
+    avatarId: "avatar-2",
     city: "Delhi",
     locality: "Hauz Khas",
     budget: 14000,
     gender: "Female",
-    preferredRoommateGender: "Any",
-    food: "Veg",
-    social: 4,
-    guests: "Occasionally",
-    cleanliness: 5,
-    sleep: "Lights off",
-    noise: "Silent",
-    smokes: "No",
-    okWithSmoker: "Yes",
-    drinks: "Occasional",
-    okWithDrinker: "Yes",
-    jobStatus: "Working Professional",
-    preferredJobStatus: "Either",
+
+    food: "Vegetarian",
+    social: "Balanced",
+    cleanliness: "5/5",
     schedule: "Mostly daytime",
-    okWithDifferentSchedule: "Yes",
+
+    jobStatus: "Working Professional",
     workMode: "Hybrid",
-    preferQuietWorkHours: "No preference",
-    priorityFields: ["cleanliness", "sleep"],
   },
+
   {
     id: "u2",
     name: "Priya Menon",
-    email: "priya.menon@example.com",
+    avatarId: "avatar-3",
     city: "Delhi",
     locality: "Saket",
     budget: 15500,
     gender: "Female",
-    preferredRoommateGender: "Female",
-    food: "Veg",
-    social: 3,
-    guests: "Never",
-    cleanliness: 4,
-    sleep: "Flexible",
-    noise: "Music",
-    smokes: "No",
-    okWithSmoker: "No",
-    drinks: "No",
-    okWithDrinker: "Yes",
+
+    food: "Eggetarian",
+    social: "Quiet",
+    cleanliness: "4/5",
+    schedule: "Flexible",
+
     jobStatus: "Student",
-    preferredJobStatus: "Student",
-    schedule: "Varies",
-    okWithDifferentSchedule: "Yes",
-    workMode: "",
-    preferQuietWorkHours: "No preference",
-    priorityFields: ["food"],
+    workMode: "Campus",
   },
+
   {
     id: "u3",
     name: "Kabir Singh",
-    email: "kabir.singh@example.com",
+    avatarId: "avatar-4",
     city: "Delhi",
     locality: "Green Park",
     budget: 13000,
     gender: "Male",
-    preferredRoommateGender: "Any",
-    food: "Non-veg",
-    social: 2,
-    guests: "Occasionally",
-    cleanliness: 3,
-    sleep: "Lights off",
-    noise: "Silent",
-    smokes: "Occasional",
-    okWithSmoker: "Yes",
-    drinks: "Yes",
-    okWithDrinker: "Yes",
-    jobStatus: "Working Professional",
-    preferredJobStatus: "Either",
+
+    food: "Non-Vegetarian",
+    social: "Outgoing",
+    cleanliness: "5/5",
     schedule: "Mostly daytime",
-    okWithDifferentSchedule: "Yes",
+
+    jobStatus: "Working Professional",
     workMode: "Work From Home",
-    preferQuietWorkHours: "Yes, I'd prefer that",
-    priorityFields: ["sleep", "noise"],
   },
 ];
 
@@ -138,6 +122,7 @@ export const mockMatches = [
   {
     matchId: "m1",
     user: otherUsers[0],
+    avatarId: "avatar-2",
     score: 91,
     breakdown: {
       food: 100,
@@ -152,6 +137,7 @@ export const mockMatches = [
   {
     matchId: "m2",
     user: otherUsers[1],
+    avatarId: "avatar-3",
     score: 84,
     breakdown: {
       food: 70,
@@ -166,6 +152,7 @@ export const mockMatches = [
   {
     matchId: "m3",
     user: otherUsers[2],
+    avatarId: "avatar-4",
     score: 88,
     breakdown: {
       food: 100,
@@ -186,6 +173,7 @@ export const mockIncomingRequests = [
   {
     requestId: "r1",
     from: otherUsers[1],
+    avatarId: "avatar-2",
     score: 84,
     status: "pending", // "pending" | "accepted" | "declined"
     contactRevealed: false,

@@ -6,148 +6,160 @@ import { SCORED_FIELDS } from "../data/mockData";
 
 export default function MatchDetail() {
   const { matchId } = useParams();
+
   const [match, setMatch] = useState(null);
   const [error, setError] = useState("");
-  const [requestStatus, setRequestStatus] = useState("idle"); // idle | sending | sent
-  const [aiAnalysis, setAiAnalysis] = useState(null);
-  const [aiLoading, setAiLoading] = useState(true);
+  const [requestError, setRequestError] = useState("");
+  const [requestStatus, setRequestStatus] = useState("idle");
+  // idle | sending | sent
 
   useEffect(() => {
-    setMatch(null);
-    setAiAnalysis(null);
-    setAiLoading(true);
     setError("");
+    setMatch(null);
 
     api
       .getMatchById(matchId)
-      .then((data) => {
-        setMatch(data);
-        api.getMatchAiAnalysis(matchId)
-          .then((aiData) => {
-            setAiAnalysis(aiData);
-            setAiLoading(false);
-          })
-          .catch((err) => {
-            console.error("AI Analysis failed:", err);
-            setAiLoading(false);
-          });
-      })
-      .catch((err) => setError(err.message));
+      .then(setMatch)
+      .catch((err) => {
+        setError(err.message || "This match could not be found.");
+      });
   }, [matchId]);
 
   const handleSendRequest = async () => {
+    if (requestStatus === "sending" || requestStatus === "sent") {
+      return;
+    }
+
+    setRequestError("");
     setRequestStatus("sending");
-    await api.sendRequest(matchId);
-    setRequestStatus("sent");
+
+    try {
+      await api.sendRequest(matchId);
+      setRequestStatus("sent");
+    } catch (err) {
+      setRequestStatus("idle");
+
+      if (err.code === "REQUEST_ALREADY_SENT") {
+        setRequestStatus("sent");
+        return;
+      }
+
+      setRequestError(
+        err.message || "We couldn't send your request. Please try again."
+      );
+    }
   };
 
   if (error) {
-    return (
-      <div className="max-w-2xl mx-auto px-6 py-12">
-        <p className="text-accent">{error}</p>
-        <Link to="/matches" className="text-primary text-sm font-medium">
-          ← Back to matches
-        </Link>
-      </div>
-    );
+    return <MatchErrorState message={error} />;
   }
 
   if (!match) {
-    return (
-      <div className="max-w-2xl mx-auto px-6 py-12">
-        <p className="text-muted">Loading match…</p>
-      </div>
-    );
+    return <MatchDetailLoading />;
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-12">
-      <Link to="/matches" className="text-sm text-muted hover:text-primary">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <Link
+        to="/matches"
+        className="text-sm font-medium text-muted transition-colors hover:text-primary"
+      >
         ← Back to matches
       </Link>
 
-      <div className="mt-6 flex items-center gap-6">
-        <CompatibilityRing score={match.score} size={100} />
-        <div>
-          <h1 className="font-display text-3xl font-semibold text-ink">{match.user.name}</h1>
-          <p className="mt-1 text-muted">
-            {match.user.locality}, {match.user.city} · ₹{match.user.budget.toLocaleString("en-IN")}/mo
-          </p>
-          {/* Deliberately no email/phone anywhere on this page - contact info
-              only exists on the Requests page, and only after acceptance. */}
-        </div>
-      </div>
+      <section className="mt-6 rounded-2xl border border-border bg-card p-5 sm:p-7">
+        <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:gap-6 sm:text-left">
+          <CompatibilityRing
+            score={match.score}
+            size={100}
+            strokeWidth={8}
+          />
 
-      {aiLoading ? (
-        <div className="mt-8 p-6 rounded-2xl border border-indigo-100/50 bg-gradient-to-br from-indigo-50/20 via-purple-50/10 to-pink-50/20 shadow-sm animate-pulse">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8.5 h-8 rounded-lg bg-indigo-200/50"></div>
-            <div className="w-36 h-5 rounded bg-indigo-200/50"></div>
-          </div>
-          <div className="space-y-3">
-            <div className="h-4 bg-indigo-100/60 rounded w-full"></div>
-            <div className="h-4 bg-indigo-100/60 rounded w-5/6"></div>
-            <div className="h-4 bg-indigo-100/60 rounded w-2/3 mt-6"></div>
-            <div className="h-4 bg-indigo-100/60 rounded w-4/5"></div>
-          </div>
-        </div>
-      ) : (
-        <div className="mt-8 p-6 rounded-2xl border border-indigo-100/60 bg-gradient-to-br from-indigo-50/30 via-purple-50/20 to-pink-50/30 shadow-sm backdrop-blur-sm transition-all duration-500 ease-in-out hover:shadow-md hover:border-indigo-200/60">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-sm shadow-indigo-200">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-            </div>
-            <h3 className="font-display text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-700">
-              AI Roommate Insights
-            </h3>
-          </div>
-          
-          <div className="space-y-5">
-            <div>
-              <h4 className="text-xs font-mono text-indigo-500 font-bold uppercase tracking-wider mb-1.5">
-                About {match.user.name}
-              </h4>
-              <p className="text-slate-700 leading-relaxed text-sm">
-                {aiAnalysis?.custom_description}
-              </p>
-            </div>
-            
-            <div className="pt-4 border-t border-indigo-100/30">
-              <h4 className="text-xs font-mono text-purple-500 font-bold uppercase tracking-wider mb-1.5">
-                Why they are a perfect fit
-              </h4>
-              <p className="text-slate-700 leading-relaxed text-sm">
-                {aiAnalysis?.match_reason}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+          <div className="min-w-0">
+            <h1 className="font-display text-3xl font-semibold text-ink">
+              {match.user.name}
+            </h1>
 
-      <div className="mt-10">
-        <h2 className="font-display text-xl font-semibold text-ink">Compatibility breakdown</h2>
-        <div className="mt-4 space-y-3">
+            <p className="mt-2 text-muted">
+              {match.user.locality}, {match.user.city}
+            </p>
+
+            <p className="mt-1 text-muted">
+              ₹{match.user.budget.toLocaleString("en-IN")}/month
+            </p>
+
+            <div className="mt-4 flex flex-wrap justify-center gap-2 sm:justify-start">
+              <span className="rounded-full border border-border px-3 py-1 text-xs text-muted">
+                {match.user.jobStatus}
+              </span>
+
+              <span className="rounded-full border border-border px-3 py-1 text-xs text-muted">
+                {match.user.schedule}
+              </span>
+
+              {match.user.workMode && (
+                <span className="rounded-full border border-border px-3 py-1 text-xs text-muted">
+                  {match.user.workMode}
+                </span>
+              )}
+            </div>
+
+            {/* Contact information intentionally stays hidden until
+                both users accept the request. */}
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-8 rounded-2xl border border-border bg-card p-5 sm:p-7">
+        <h2 className="font-display text-xl font-semibold text-ink">
+          Compatibility breakdown
+        </h2>
+
+        <p className="mt-2 text-sm text-muted">
+          Priority preferences receive extra weight in the overall score.
+        </p>
+
+        <div className="mt-6 space-y-4">
           {SCORED_FIELDS.map((field) => {
-            const value = match.breakdown[field.key];
-            const isPriority = match.priorityFields.includes(field.key);
+            const rawValue = match.breakdown?.[field.key];
+            const value =
+              typeof rawValue === "number"
+                ? Math.min(Math.max(rawValue, 0), 100)
+                : 0;
+
+            const isPriority =
+              match.priorityFields?.includes(field.key) ?? false;
+
             return (
               <div key={field.key}>
-                <div className="flex justify-between text-sm mb-1">
+                <div className="mb-2 flex items-start justify-between gap-4 text-sm">
                   <span className="font-medium text-ink">
                     {field.label}
+
                     {isPriority && (
-                      <span className="ml-2 text-xs font-mono text-accent uppercase">
-                        priority
+                      <span className="ml-2 whitespace-nowrap font-mono text-xs uppercase text-accent">
+                        Priority
                       </span>
                     )}
                   </span>
-                  <span className="font-mono text-muted">{value}%</span>
+
+                  <span className="font-mono text-muted">
+                    {value}%
+                  </span>
                 </div>
-                <div className="h-2 bg-border rounded-full overflow-hidden">
+
+                <div
+                  className="h-2 overflow-hidden rounded-full bg-border"
+                  role="progressbar"
+                  aria-label={`${field.label}: ${value}%`}
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow={value}
+                >
                   <div
-                    className={`h-full rounded-full ${isPriority ? "bg-accent" : "bg-primary"}`}
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      isPriority ? "bg-accent" : "bg-primary"
+                    }`}
                     style={{ width: `${value}%` }}
                   />
                 </div>
@@ -155,22 +167,108 @@ export default function MatchDetail() {
             );
           })}
         </div>
-      </div>
+      </section>
 
-      <div className="mt-10">
+      <section className="mt-8">
+        {requestError && (
+          <div
+            role="alert"
+            className="mb-4 rounded-xl border border-accent/30 bg-card px-4 py-3 text-sm text-accent"
+          >
+            {requestError}
+          </div>
+        )}
+
         {requestStatus === "sent" ? (
-          <p className="px-5 py-3 rounded-full bg-primary-light text-primary-dark font-medium inline-block">
-            Request sent — you'll be notified if they accept.
-          </p>
+          <div className="rounded-2xl border border-primary/30 bg-primary-light p-5">
+            <h2 className="font-display text-lg font-semibold text-primary-dark">
+              Request sent
+            </h2>
+
+            <p className="mt-1 text-sm text-primary-dark">
+              You'll be notified if {match.user.name} accepts. Contact
+              information will remain hidden until then.
+            </p>
+
+            <Link
+              to="/requests"
+              className="mt-4 inline-flex text-sm font-medium text-primary-dark underline underline-offset-4"
+            >
+              View your requests
+            </Link>
+          </div>
         ) : (
           <button
+            type="button"
             onClick={handleSendRequest}
             disabled={requestStatus === "sending"}
-            className="px-6 py-3 rounded-full bg-primary text-white font-medium hover:bg-primary-dark transition-colors disabled:opacity-50"
+            className="w-full rounded-full bg-primary px-6 py-3 font-medium text-white transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
-            {requestStatus === "sending" ? "Sending…" : "Send connection request"}
+            {requestStatus === "sending"
+              ? "Sending…"
+              : "Send connection request"}
           </button>
         )}
+      </section>
+    </div>
+  );
+}
+
+function MatchDetailLoading() {
+  return (
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="h-4 w-32 animate-pulse rounded bg-border" />
+
+      <div className="mt-6 rounded-2xl border border-border bg-card p-5 sm:p-7">
+        <div className="flex animate-pulse flex-col items-center gap-5 sm:flex-row">
+          <div className="h-24 w-24 rounded-full bg-border" />
+
+          <div className="w-full flex-1">
+            <div className="mx-auto h-8 w-44 rounded bg-border sm:mx-0" />
+            <div className="mx-auto mt-3 h-4 w-56 max-w-full rounded bg-border sm:mx-0" />
+            <div className="mx-auto mt-2 h-4 w-36 rounded bg-border sm:mx-0" />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8 rounded-2xl border border-border bg-card p-5 sm:p-7">
+        <div className="h-6 w-56 animate-pulse rounded bg-border" />
+
+        <div className="mt-6 space-y-5">
+          {[1, 2, 3, 4, 5, 6].map((item) => (
+            <div key={item} className="animate-pulse">
+              <div className="flex justify-between">
+                <div className="h-4 w-36 rounded bg-border" />
+                <div className="h-4 w-10 rounded bg-border" />
+              </div>
+
+              <div className="mt-2 h-2 w-full rounded-full bg-border" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MatchErrorState({ message }) {
+  return (
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="rounded-2xl border border-accent/30 bg-card p-6">
+        <h1 className="font-display text-2xl font-semibold text-ink">
+          Match unavailable
+        </h1>
+
+        <p className="mt-2 text-sm text-accent">
+          {message}
+        </p>
+
+        <Link
+          to="/matches"
+          className="mt-5 inline-flex rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-dark"
+        >
+          Back to matches
+        </Link>
       </div>
     </div>
   );

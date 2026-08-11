@@ -1,85 +1,58 @@
 import { Link } from "react-router-dom";
-import CompatibilityRing from "../components/CompatibilityRing";
+import logo from "../assets/logo/roomeo-logo.png";
 
 export default function Landing() {
   return (
-    <div className="max-w-5xl mx-auto px-6">
-      <section className="grid md:grid-cols-2 gap-12 items-center py-20 md:py-28">
-        <div>
-          <p className="font-mono text-sm text-accent tracking-wide uppercase mb-4">
-            Find out before you sign the lease
-          </p>
-          <h1 className="font-display text-5xl md:text-6xl font-semibold leading-[1.05] text-ink">
-            Living together starts with a number.
-          </h1>
-          <p className="mt-6 text-lg text-muted max-w-md">
-            Answer a few honest questions about how you actually live. We match
-            you with people who live the same way — and only show you the ones
-            scoring 80% or higher.
-          </p>
-          <div className="mt-8 flex gap-3">
-            <Link
-              to="/signup"
-              className="px-6 py-3 rounded-full bg-primary text-white font-medium hover:bg-primary-dark transition-colors"
-            >
-              Get started
-            </Link>
-            <Link
-              to="/login"
-              className="px-6 py-3 rounded-full border border-border font-medium text-ink hover:border-ink transition-colors"
-            >
-              Log in
-            </Link>
-          </div>
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-8">
+
+        {/* Logo */}
+        <div className="flex justify-center">
+          <img
+            src={logo}
+            alt="Roomeo"
+            className="w-48 h-auto object-contain"
+          />
         </div>
 
-        <div className="flex justify-center md:justify-end">
-          <div className="bg-card border border-border rounded-3xl p-8 shadow-sm w-full max-w-xs">
-            <p className="font-mono text-xs text-muted uppercase tracking-wide mb-6">
-              Sample match
+        {/* Hero */}
+        <div className="flex flex-1 items-center justify-center">
+          <div className="max-w-2xl text-center">
+
+            <h1 className="font-display text-4xl font-semibold leading-tight text-ink sm:text-5xl">
+              Find a roommate who actually fits your lifestyle.
+            </h1>
+
+            <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-muted sm:text-lg">
+              Roomeo helps you find compatible roommates based on
+              your habits, budget, lifestyle, and living preferences.
             </p>
-            <div className="flex items-center gap-5">
-              <CompatibilityRing score={91} size={88} />
-              <div>
-                <p className="font-display text-lg font-medium text-ink">Ananya R.</p>
-                <p className="text-sm text-muted">Hauz Khas · ₹14,000/mo</p>
-              </div>
+
+            {/* Buttons */}
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link
+                to="/signup"
+                className="inline-flex w-full items-center justify-center rounded-full bg-primary px-7 py-3 font-medium text-white transition-colors hover:bg-primary-dark sm:w-auto"
+              >
+                Get started
+              </Link>
+
+              <Link
+                to="/login"
+                className="inline-flex w-full items-center justify-center rounded-full border border-border bg-card px-7 py-3 font-medium text-ink transition-colors hover:border-primary sm:w-auto"
+              >
+                Log in
+              </Link>
             </div>
-            <div className="mt-6 pt-6 border-t border-border space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted">Cleanliness</span>
-                <span className="font-mono text-ink">95%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted">Sleep schedule</span>
-                <span className="font-mono text-ink">80%</span>
-              </div>
-            </div>
+
+            <p className="mt-6 text-sm text-muted">
+              Better matches. Better living.
+            </p>
+
           </div>
         </div>
-      </section>
 
-      <section className="grid sm:grid-cols-3 gap-6 pb-24">
-        {[
-          {
-            title: "One honest questionnaire",
-            body: "Budget, habits, schedule, and the things people usually find out the hard way — after moving in.",
-          },
-          {
-            title: "A score, not a swipe",
-            body: "Every match comes with a percentage and a breakdown of exactly why, across the things that matter.",
-          },
-          {
-            title: "Contact stays private",
-            body: "No email or phone number is shared until both people accept the match.",
-          },
-        ].map((item) => (
-          <div key={item.title} className="border-t-2 border-primary pt-4">
-            <h3 className="font-display text-lg font-medium text-ink">{item.title}</h3>
-            <p className="mt-2 text-sm text-muted">{item.body}</p>
-          </div>
-        ))}
-      </section>
+      </div>
     </div>
   );
 }
