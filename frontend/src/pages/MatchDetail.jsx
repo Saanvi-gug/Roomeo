@@ -110,6 +110,45 @@ export default function MatchDetail() {
         </div>
       </section>
 
+      {/* AI Match Insights */}
+      {match.aiAnalysis && (
+        <section className="mt-8 animate-fadeIn rounded-2xl border border-primary/20 bg-gradient-to-br from-primary-light/50 to-card p-5 sm:p-7 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.0} stroke="currentColor" className="h-5 w-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 21l-.813-5.096L3 15l5.096-.813L9 9l.813 5.187L15 15l-5.187.904zM18 10.5l-.375 2.625L15 13.5l2.625.375L18 16.5l.375-2.625L21 13.5l-2.625-.375L18 10.5zM6 6L5.625 7.875 3.75 8.25 5.625 8.625 6 10.5l.375-1.875L8.25 8.25 6.375 7.875 6 6z" />
+              </svg>
+            </span>
+            <h2 className="font-display text-xl font-semibold text-ink">
+              AI Match Insights
+            </h2>
+            <span className="rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+              Gemini Powered
+            </span>
+          </div>
+
+          <div className="mt-5 space-y-5">
+            <div>
+              <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-primary">
+                About {match.user.name}
+              </h3>
+              <p className="mt-1.5 text-sm text-ink leading-relaxed">
+                {match.aiAnalysis.custom_description}
+              </p>
+            </div>
+
+            <div className="border-t border-border/60 pt-4">
+              <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-primary">
+                Why you're a great fit
+              </h3>
+              <p className="mt-1.5 text-sm text-ink leading-relaxed">
+                {match.aiAnalysis.match_reason}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="mt-8 rounded-2xl border border-border bg-card p-5 sm:p-7">
         <h2 className="font-display text-xl font-semibold text-ink">
           Compatibility breakdown

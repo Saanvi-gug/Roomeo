@@ -76,7 +76,7 @@ Then open `http://127.0.0.1:8000/docs` to view the API docs.
 
 - The frontend app currently relies on `frontend/src/api/mockApi.js` for profile, match, and request data.
 - Backend auth and profile routes are implemented in Express and MongoDB.
-- The ML service is a prototype and is not currently integrated into the main backend.
+- The ML service's Gemini AI endpoint is integrated directly with the frontend to power the "AI Match Insights" card on the Match Details page.
 
 ## Available commands
 
@@ -84,6 +84,10 @@ Then open `http://127.0.0.1:8000/docs` to view the API docs.
 
 - `npm run dev` — start backend with `nodemon`
 - `npm start` — start backend with Node
+
+### Database Utilities
+
+- `node check_db.js` — print all registered users currently in the database
 
 ### Frontend
 
@@ -93,10 +97,10 @@ Then open `http://127.0.0.1:8000/docs` to view the API docs.
 
 ## Recommended workflow
 
-1. Start MongoDB locally or configure `MONGODB_URI`
-2. Run backend: `npm run dev`
-3. Run frontend: `cd frontend && npm run dev`
-4. Optionally run ML service: `cd ml-service && uvicorn compatibility_service:app --reload`
+1. Configure `MONGODB_URI` in `.env` (ensure special characters like `@` in the database password are URL-encoded).
+2. Start the Express backend: `npm run dev`
+3. Start the FastAPI ML service: `cd ml-service && uvicorn compatibility_service:app --reload`
+4. Start the React frontend: `cd frontend && npm run dev`
 
 ## License
 
