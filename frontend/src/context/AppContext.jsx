@@ -1,14 +1,6 @@
 import { createContext, useContext, useState, useCallback } from "react";
 import * as api from "../api/mockApi";
 
-// Why Context instead of prop-drilling or Redux:
-//  - Two people (Frontend A + B) are building different page groups that
-//    both need to know "is someone logged in?" and "what's their profile?".
-//  - Context lets both sides read the same state without passing props
-//    through five layers of components, and without pulling in a state
-//    management library for what is genuinely a small amount of shared state.
-//  - If the app grows past this hackathon, this is the seam where you'd
-//    swap in Redux/Zustand - only this file would change.
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {

@@ -1,15 +1,6 @@
 // ---------------------------------------------------------------------------
 // MOCK DATA
-// ---------------------------------------------------------------------------
-// This file stands in for MongoDB + the FastAPI ML service. Every shape here
-// (field names, nesting) is written to match the real API contract from the
-// spec, so when Backend Person A/B's real endpoints are ready, we only need
-// to change src/api/mockApi.js internals - no page component should need to
-// change at all. That's the whole point of the "build against dummy data"
-// strategy in Section 3 of the spec.
-// ---------------------------------------------------------------------------
 
-// The 6 "scored" fields from Section 5, used for the compatibility breakdown.
 import avatar1 from "../assets/avatars/avatar-1.jpg";
 import avatar2 from "../assets/avatars/avatar-2.jpg";
 import avatar3 from "../assets/avatars/avatar-3.jpg";

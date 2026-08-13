@@ -1,31 +1,3 @@
-"""
-RoomieMatch — Compatibility Scoring Service (FastAPI)
-
-Run with:
-    pip install fastapi uvicorn scikit-learn numpy
-    uvicorn compatibility_service:app --reload
-
-Then open http://127.0.0.1:8000/docs to test it manually (Swagger UI).
-
-MATCHING LOGIC OVERVIEW
-------------------------
-1. HARD FILTERS (candidate is excluded entirely if any of these fail):
-   - Gender preference (both directions must be satisfied)
-   - City (must match)
-   - Locality distance (must be within 5km)
-   - Budget (must be within a set range of each other)
-   - Smoking comfort (bidirectional: both people must be okay with the other's habit)
-   - Drinking comfort (same, bidirectional)
-   - Priority fields (soft threshold — must be "close enough", not exact)
-
-2. SCORING (only run on candidates who pass all hard filters above):
-   - Weighted similarity across: food preference, socialising level,
-     guest frequency, cleanliness, sleep condition, noise/study habits
-   - Priority fields get extra weight in this score too
-
-3. Only candidates scoring 80% or higher get returned to the frontend.
-"""
-
 import os
 import json
 import re
@@ -55,13 +27,6 @@ BUDGET_TOLERANCE = 3000         # rupees, adjust as needed
 PRIORITY_WEIGHT_MULTIPLIER = 2.5
 MAX_PRIORITY_FIELDS = 3
 
-
-# ---------------------------------------------------------
-# 1. Locality -> lat/lng lookup (hardcoded for hackathon MVP)
-# ---------------------------------------------------------
-# Fill this in with real localities for your target city.
-# Get coordinates by right-clicking a spot on Google Maps.
-
 AREA_COORDINATES = {
     "Saket": (28.5245, 77.2066),
     "Hauz Khas": (28.5494, 77.2001),
@@ -70,7 +35,64 @@ AREA_COORDINATES = {
     "Lajpat Nagar": (28.5677, 77.2434),
     "Karol Bagh": (28.6519, 77.1909),
     "Green Park": (28.5588, 77.2028),
-    # add more localities as needed
+    "Greater Kailash": (28.5416, 77.2381),
+    "Vasant Kunj": (28.5245, 77.1580),
+    "Janakpuri": (28.6219, 77.0878),
+    "Pitampura": (28.7033, 77.1322),
+    "Paschim Vihar": (28.6692, 77.1000),
+    "Preet Vihar": (28.6415, 77.2950),
+    "Mayur Vihar": (28.6040, 77.2985),
+    "Shahdara": (28.6735, 77.2890),
+    "Civil Lines": (28.6769, 77.2250),
+    "Model Town": (28.7167, 77.1910),
+    "Vasant Vihar": (28.5600, 77.1600),
+    "Defence Colony": (28.5730, 77.2310),
+    "Kalkaji": (28.5364, 77.2600),
+    "Malviya Nagar": (28.5325, 77.2100),
+    "Rajouri Garden": (28.6490, 77.1220),
+    "Punjabi Bagh": (28.6680, 77.1310),
+    "Kirti Nagar": (28.6540, 77.1500),
+    "Nehru Place": (28.5491, 77.2519),
+    "Okhla": (28.5355, 77.2750),
+    "Chittaranjan Park": (28.5380, 77.2497),
+    "Safdarjung Enclave": (28.5605, 77.1950),
+    "South Extension": (28.5680, 77.2210),
+    "Greater Kailash 2": (28.5335, 77.2440),
+    "East of Kailash": (28.5580, 77.2490),
+    "Shalimar Bagh": (28.7170, 77.1500),
+    "Ashok Vihar": (28.6900, 77.1700),
+    "Vivek Vihar": (28.6700, 77.3150),
+    "Patel Nagar": (28.6630, 77.1680),
+    "Rajinder Nagar": (28.6390, 77.1840),
+    "Connaught Place": (28.6315, 77.2167),
+    "Paharganj": (28.6450, 77.2167),
+    "Laxmi Nagar": (28.6304, 77.2773),
+    "Nirman Vihar": (28.6365, 77.2860),
+    "Shakarpur": (28.6307, 77.2807),
+    "Patparganj": (28.6230, 77.2900),
+    "IP Extension": (28.6275, 77.3030),
+    "Vasundhara Enclave": (28.6025, 77.3210),
+    "New Friends Colony": (28.5675, 77.2665),
+    "Jangpura": (28.5835, 77.2460),
+    "Jor Bagh": (28.5890, 77.2195),
+    "Lodhi Colony": (28.5880, 77.2275),
+    "Khan Market": (28.6000, 77.2270),
+    "Pragati Maidan": (28.6230, 77.2420),
+    "Dilshad Garden": (28.6750, 77.3210),
+    "Seelampur": (28.6698, 77.2660),
+    "Welcome": (28.6710, 77.2770),
+    "Mukherjee Nagar": (28.7045, 77.2060),
+    "Burari": (28.7550, 77.2000),
+    "Timarpur": (28.7050, 77.2150),
+    "Wazirabad": (28.7090, 77.2210),
+    "Nangloi": (28.6820, 77.0680),
+    "Uttam Nagar": (28.6245, 77.0550),
+    "Tilak Nagar": (28.6360, 77.0960),
+    "Subhash Nagar": (28.6380, 77.1050),
+    "Naraina": (28.6260, 77.1390),
+    "Dhaula Kuan": (28.5915, 77.1610),
+    "Munirka": (28.5570, 77.1700),
+    "R.K. Puram": (28.5635, 77.1760),
 }
 
 
@@ -84,9 +106,6 @@ def calculate_distance_km(coord1, coord2) -> float:
     return 6371 * c  # Earth radius in km
 
 
-# ---------------------------------------------------------
-# 2. Profile shape
-# ---------------------------------------------------------
 
 class Profile(BaseModel):
     name: Optional[str] = None
@@ -124,9 +143,7 @@ class MatchRequest(BaseModel):
     priorityFields: List[str] = []   # up to 3, from the SCORED field list only
 
 
-# ---------------------------------------------------------
 # 3. Scored-field config (used only after hard filters pass)
-# ---------------------------------------------------------
 
 SCORED_FIELD_CONFIG = {
     "foodPref":         {"type": "categorical", "weight": 1.0},
@@ -209,10 +226,6 @@ def is_working(profile: dict) -> bool:
 def shift_comfort_passes(user: dict, candidate: dict) -> bool:
     """
     Bidirectional check, same pattern as smoking/drinking.
-    Shift applies to ANYONE with a regular schedule outside normal daytime hours —
-    not just working professionals. A student with evening/night classes has the
-    same clash potential as a night-shift worker, so this is NOT gated by jobStatus.
-    If either person didn't specify a shift, or both shifts match, nothing to check.
     """
     user_shift = user.get("workShift")
     candidate_shift = candidate.get("workShift")
@@ -230,8 +243,6 @@ def shift_comfort_passes(user: dict, candidate: dict) -> bool:
 def daytime_privacy_filter_passes(user: dict, candidate: dict) -> bool:
     """
     One-directional check (not bidirectional like smoking/shift):
-    if EITHER person needs a quiet/empty house during work hours,
-    the OTHER person must not be a WFH worker.
     """
     if user.get("needsDaytimePrivacy") and candidate.get("workMode") == "wfh":
         return False
@@ -279,9 +290,8 @@ def passes_all_hard_filters(user: dict, candidate: dict, priority_fields: List[s
     return None
 
 
-# ---------------------------------------------------------
 # 5. Scoring (only runs on candidates who passed every hard filter)
-# ---------------------------------------------------------
+
 
 def build_similarity_and_ideal_vectors(user: dict, candidate: dict, priority_fields: List[str]):
     similarities = []
@@ -319,9 +329,8 @@ def calculate_score_and_breakdown(user: dict, candidate: dict, priority_fields: 
     return round(overall_score, 2), breakdown
 
 
-# ---------------------------------------------------------
 # 6. API endpoint
-# ---------------------------------------------------------
+
 
 @app.post("/compatibility-score")
 def compatibility_score(request: MatchRequest):
@@ -499,9 +508,8 @@ Return ONLY a valid JSON object with the following keys, containing no markdown 
         }
 
 
-# ---------------------------------------------------------
 # 7. Quick manual test
-# ---------------------------------------------------------
+
 
 if __name__ == "__main__":
     user_a = {

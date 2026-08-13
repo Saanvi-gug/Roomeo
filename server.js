@@ -16,28 +16,24 @@ const app = express();
 
 // ==============================
 // DATABASE CONNECTION
-// ==============================
 
 
 connectDB();
 
 // ==============================
 // MIDDLEWARE
-// ==============================
 
 app.use(cors());
 app.use(express.json());
 
 // ==============================
 // ROUTES
-// ==============================
 
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 
 // ==============================
 // HOME ROUTE
-// ==============================
 
 app.get("/", (req, res) => {
     res.send("🚀 ROOMEO Backend Running");
@@ -45,7 +41,6 @@ app.get("/", (req, res) => {
 
 // ==============================
 // START SERVER
-// ==============================
 
 const PORT = process.env.PORT || 5000;
 
