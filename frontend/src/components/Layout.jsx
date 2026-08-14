@@ -21,63 +21,67 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-bg text-ink">
-      <header className="border-b border-border bg-card">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          
-          {/* Roomeo Logo */}
-          <Link to="/" className="flex items-center">
-            <img
-              src={logo}
-              alt="Roomeo"
-              className="h-9 w-auto object-contain"
-            />
-          </Link>
 
-          {isAuthenticated && (
-            <nav className="flex items-center gap-2">
-              <Link
-                to="/dashboard"
-                className={navLink(
-                  location.pathname === "/dashboard"
-                )}
-              >
-                Dashboard
-              </Link>
+      {/* Hide navbar only on splash screen */}
+      {location.pathname !== "/" && (
+        <header className="border-b border-border bg-card">
+          <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
 
-              <Link
-                to="/matches"
-                className={navLink(
-                  location.pathname.startsWith("/matches")
-                )}
-              >
-                Matches
-              </Link>
+            {/* Roomeo Logo */}
+            <Link to="/" className="flex items-center">
+              <img
+                src={logo}
+                alt="Roomeo"
+                className="h-9 w-auto object-contain"
+              />
+            </Link>
 
-              <Link
-                to="/requests"
-                className={navLink(
-                  location.pathname === "/requests"
-                )}
-              >
-                Requests
-              </Link>
+            {isAuthenticated && (
+              <nav className="flex items-center gap-2">
+                <Link
+                  to="/dashboard"
+                  className={navLink(
+                    location.pathname === "/dashboard"
+                  )}
+                >
+                  Dashboard
+                </Link>
 
-              <span className="text-border">|</span>
+                <Link
+                  to="/matches"
+                  className={navLink(
+                    location.pathname.startsWith("/matches")
+                  )}
+                >
+                  Matches
+                </Link>
 
-              <span className="px-3 py-2 text-sm text-muted">
-                {profile?.name || "You"}
-              </span>
+                <Link
+                  to="/requests"
+                  className={navLink(
+                    location.pathname === "/requests"
+                  )}
+                >
+                  Requests
+                </Link>
 
-              <button
-                onClick={handleLogout}
-                className={navLink(false)}
-              >
-                Log out
-              </button>
-            </nav>
-          )}
-        </div>
-      </header>
+                <span className="text-border">|</span>
+
+                <span className="px-3 py-2 text-sm text-muted">
+                  {profile?.name || "You"}
+                </span>
+
+                <button
+                  onClick={handleLogout}
+                  className={navLink(false)}
+                >
+                  Log out
+                </button>
+              </nav>
+            )}
+          </div>
+        </header>
+      )}
 
       <main>
         <Outlet />
