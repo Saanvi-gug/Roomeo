@@ -4,6 +4,7 @@ import * as api from "../api/mockApi";
 import { emptyProfile, SCORED_FIELDS } from "../data/mockData";
 import { useApp } from "../context/AppContext";
 import { AVATAR_OPTIONS } from "../data/avatarOptions";
+import { DELHI_LOCALITIES } from "../data/delhiLocalities";
 
 const STEPS = [
   "avatar",
@@ -477,20 +478,54 @@ function LocationStep({ answers, set }) {
         subtitle="These details help us find roommates in the right area and budget."
       />
 
-      <TextField
-        label="City"
-        value={answers.city}
-        onChange={set("city")}
-        placeholder="e.g. Delhi"
-      />
+      {/* City */}
+      <div>
+        <label
+          htmlFor="city"
+          className="mb-1 block text-sm font-medium text-ink"
+        >
+          City
+        </label>
 
-      <TextField
-        label="Locality or area"
-        value={answers.locality}
-        onChange={set("locality")}
-        placeholder="e.g. Hauz Khas"
-      />
+        <input
+          id="city"
+          type="text"
+          value="Delhi"
+          readOnly
+          className="w-full rounded-xl border border-border bg-border/20 px-4 py-2.5 text-muted outline-none"
+        />
+      </div>
 
+      {/* Locality dropdown */}
+      <div>
+        <label
+          htmlFor="locality"
+          className="mb-1 block text-sm font-medium text-ink"
+        >
+          Locality or area
+        </label>
+
+        <select
+          id="locality"
+          value={answers.locality || ""}
+          onChange={(event) =>
+            set("locality")(event.target.value)
+          }
+          className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-ink outline-none transition-colors focus:border-primary"
+        >
+          <option value="">
+            Select your locality
+          </option>
+
+          {DELHI_LOCALITIES.map((locality) => (
+            <option key={locality} value={locality}>
+              {locality}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Budget */}
       <TextField
         label="Monthly budget (₹)"
         type="number"
@@ -499,6 +534,7 @@ function LocationStep({ answers, set }) {
         placeholder="e.g. 14000"
       />
 
+      {/* Gender */}
       <ChoiceGroup
         label="Your gender"
         options={["Male", "Female", "Other"]}
@@ -506,6 +542,7 @@ function LocationStep({ answers, set }) {
         onChange={set("gender")}
       />
 
+      {/* Preferred roommate gender */}
       <ChoiceGroup
         label="Preferred roommate gender"
         options={["Male", "Female", "Any"]}
@@ -515,7 +552,6 @@ function LocationStep({ answers, set }) {
     </div>
   );
 }
-
 /* -------------------------------------------------------------------------- */
 /* Lifestyle Step                                                             */
 /* -------------------------------------------------------------------------- */

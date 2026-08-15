@@ -24,7 +24,7 @@ export const emptyProfile = {
   name: "",
   avatarId: "",
   email: "",
-  city: "",
+  city: "Delhi",
   locality: "",
   budget: "",
   gender: "",
