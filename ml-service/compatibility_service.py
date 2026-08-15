@@ -21,9 +21,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-MATCH_THRESHOLD = 0.80          # only show matches at or above 80%
-MAX_DISTANCE_KM = 5             # locality distance hard filter
-BUDGET_TOLERANCE = 3000         # rupees, adjust as needed
+MATCH_THRESHOLD = 0.80
+MAX_DISTANCE_KM = 5
+BUDGET_TOLERANCE = 3000
 PRIORITY_WEIGHT_MULTIPLIER = 2.5
 MAX_PRIORITY_FIELDS = 3
 
@@ -103,47 +103,39 @@ def calculate_distance_km(coord1, coord2) -> float:
     dlon = lon2 - lon1
     a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    return 6371 * c  # Earth radius in km
-
+    return 6371 * c
 
 
 class Profile(BaseModel):
     name: Optional[str] = None
-    # --- hard filter fields ---
-    gender: str                      # "male" / "female" / "other"
-    preferredRoommateGender: str      # "male" / "female" / "any"
+    gender: str
+    preferredRoommateGender: str
     city: str
-    locality: str                    # must be a key in AREA_COORDINATES
+    locality: str
     budget: float
-
-    smoker: str                      # "yes" / "no" / "occasional"
+    smoker: str
     okayWithSmoker: bool
-    drinker: str                     # "yes" / "no" / "occasional"
+    drinker: str
     okayWithDrinker: bool
-
-    jobStatus: str                   # "student" / "working" / "both"
-    preferredRoommateJobStatus: str  # "student" / "working" / "any"
-    workShift: Optional[str] = None       # "day" / "night" / "rotational" — asked to EVERYONE (students with evening/night classes have this too, not just working professionals)
+    jobStatus: str
+    preferredRoommateJobStatus: str
+    workShift: Optional[str] = None
     okayWithDifferentShift: Optional[bool] = None
-    workMode: Optional[str] = None        # "wfh" / "wfo" / "hybrid" — only meaningful if jobStatus is "working" or "both"
-    needsDaytimePrivacy: bool = False     # "I'd prefer the house quiet/empty during my work hours"
-
-    # --- scored fields ---
-    foodPref: str                    # "veg" / "non-veg" / "eggetarian" / "vegan"
-    socialLevel: int                 # 1-5
-    guestsFreq: str                  # "never" / "occasionally" / "often"
-    cleanliness: int                 # 1-5
-    sleepCondition: str              # "lights-on" / "lights-off" / "flexible"
-    noiseStudyHabits: str            # "silent" / "music" / "group"
+    workMode: Optional[str] = None
+    needsDaytimePrivacy: bool = False
+    foodPref: str
+    socialLevel: int
+    guestsFreq: str
+    cleanliness: int
+    sleepCondition: str
+    noiseStudyHabits: str
 
 
 class MatchRequest(BaseModel):
     userProfile: Profile
     candidateProfile: Profile
-    priorityFields: List[str] = []   # up to 3, from the SCORED field list only
+    priorityFields: List[str] = []
 
-
-# 3. Scored-field config (used only after hard filters pass)
 
 SCORED_FIELD_CONFIG = {
     "foodPref":         {"type": "categorical", "weight": 1.0},
@@ -154,13 +146,8 @@ SCORED_FIELD_CONFIG = {
     "noiseStudyHabits": {"type": "categorical", "weight": 0.7},
 }
 
-# Soft-threshold tolerance used ONLY when a numeric field is marked as priority
 PRIORITY_NUMERIC_TOLERANCE = 1
 
-
-# ---------------------------------------------------------
-# 4. Hard filters
-# ---------------------------------------------------------
 
 def gender_filter_passes(user: dict, candidate: dict) -> bool:
     user_ok = user["preferredRoommateGender"] in ("any", candidate["gender"])
@@ -176,7 +163,7 @@ def distance_filter_passes(user: dict, candidate: dict) -> bool:
     coord1 = AREA_COORDINATES.get(user["locality"])
     coord2 = AREA_COORDINATES.get(candidate["locality"])
     if coord1 is None or coord2 is None:
-        return False  # unknown locality — fail safe rather than guess
+        return False
     return calculate_distance_km(coord1, coord2) <= MAX_DISTANCE_KM
 
 
@@ -189,27 +176,17 @@ def budget_filter_passes(user: dict, candidate: dict) -> bool:
 
 
 def habit_comfort_passes(user: dict, candidate: dict, habit: str) -> bool:
-    """
-    Bidirectional check for smoking/drinking.
-    habit = "smoker" or "drinker"
-    Each person must be okay with the other's actual habit status.
-    Being okay with "occasional" is treated the same as being okay with "yes".
-    """
     okay_field = f"okayWith{habit.capitalize()}"
-
     user_status = user[habit]
     candidate_status = candidate[habit]
-
     user_is_active = user_status in ("yes", "occasional")
     candidate_is_active = candidate_status in ("yes", "occasional")
 
-    # If neither does the habit, there's nothing to check — automatically fine.
     if not user_is_active and not candidate_is_active:
         return True
 
     user_okay_with_candidate = (not candidate_is_active) or user[okay_field]
     candidate_okay_with_user = (not user_is_active) or candidate[okay_field]
-
     return user_okay_with_candidate and candidate_okay_with_user
 
 
@@ -224,9 +201,6 @@ def is_working(profile: dict) -> bool:
 
 
 def shift_comfort_passes(user: dict, candidate: dict) -> bool:
-    """
-    Bidirectional check, same pattern as smoking/drinking.
-    """
     user_shift = user.get("workShift")
     candidate_shift = candidate.get("workShift")
 
@@ -241,9 +215,6 @@ def shift_comfort_passes(user: dict, candidate: dict) -> bool:
 
 
 def daytime_privacy_filter_passes(user: dict, candidate: dict) -> bool:
-    """
-    One-directional check (not bidirectional like smoking/shift):
-    """
     if user.get("needsDaytimePrivacy") and candidate.get("workMode") == "wfh":
         return False
     if candidate.get("needsDaytimePrivacy") and user.get("workMode") == "wfh":
@@ -264,7 +235,6 @@ def priority_soft_filter_passes(user: dict, candidate: dict, priority_fields: Li
 
 
 def passes_all_hard_filters(user: dict, candidate: dict, priority_fields: List[str]) -> Optional[str]:
-    """Returns None if all filters pass, otherwise a string reason for exclusion."""
     if not gender_filter_passes(user, candidate):
         return "gender preference mismatch"
     if not city_filter_passes(user, candidate):
@@ -288,9 +258,6 @@ def passes_all_hard_filters(user: dict, candidate: dict, priority_fields: List[s
     if not priority_soft_filter_passes(user, candidate, priority_fields):
         return "failed a priority field"
     return None
-
-
-# 5. Scoring (only runs on candidates who passed every hard filter)
 
 
 def build_similarity_and_ideal_vectors(user: dict, candidate: dict, priority_fields: List[str]):
@@ -329,9 +296,6 @@ def calculate_score_and_breakdown(user: dict, candidate: dict, priority_fields: 
     return round(overall_score, 2), breakdown
 
 
-# 6. API endpoint
-
-
 @app.post("/compatibility-score")
 def compatibility_score(request: MatchRequest):
     user = request.userProfile.dict()
@@ -368,12 +332,12 @@ def get_gemini_api_key():
                 with open(path, "r", encoding="utf-8") as f:
                     for line in f:
                         if line.strip().startswith("GEMINI_API_KEY"):
-                            parts = line.split("=", 1)
-                            if len(parts) == 2:
-                                val = parts[1].strip()
-                                if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
-                                    val = val[1:-1]
-                                return val
+                             parts = line.split("=", 1)
+                             if len(parts) == 2:
+                                 val = parts[1].strip()
+                                 if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+                                     val = val[1:-1]
+                                 return val
             except Exception as e:
                 print(f"Error reading {path}: {e}")
     return os.environ.get("GEMINI_API_KEY")
@@ -412,7 +376,7 @@ def call_gemini_api(prompt: str) -> str:
         method="POST"
     )
     
-    with urllib.request.urlopen(req, timeout=8) as response:
+    with urllib.request.urlopen(req, timeout=20) as response:
         res_body = response.read().decode("utf-8")
         res_json = json.loads(res_body)
         
@@ -485,7 +449,6 @@ Return ONLY a valid JSON object with the following keys, containing no markdown 
         return parsed
     except Exception as e:
         print(f"Error generating AI analysis: {e}")
-        # Return fallback values so client doesn't crash
         job_str = f"a {candidate.get('jobStatus')}" if candidate.get('jobStatus') else "a potential roommate"
         fallback_desc = f"{candidate_name} is {job_str} currently looking for a compatible shared space in {candidate.get('locality') or 'Delhi'}. They value a budget of around ₹{candidate.get('budget'):,.0f} and maintain a {candidate.get('foodPref') or 'veg'} food preference."
         
@@ -506,9 +469,6 @@ Return ONLY a valid JSON object with the following keys, containing no markdown 
             "custom_description": fallback_desc,
             "match_reason": fallback_reason
         }
-
-
-# 7. Quick manual test
 
 
 if __name__ == "__main__":

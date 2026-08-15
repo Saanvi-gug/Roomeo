@@ -1,0 +1,42 @@
+[
+  {
+    "_id": "6a7efa1c3de44b9372e11703",
+    "createdAt": "2026-08-14T11:21:00.056Z",
+    "updatedAt": "2026-08-14T11:21:00.056Z",
+    "name": "Test User",
+    "email": "test@example.com",
+    "password": "$2b$10$b5XmVrFDngdgnkJJVRcKQuXAyN.lNeS6pRZjRGeYCj1yPN84BN5Hq"
+  },
+  {
+    "_id": "6a8046d71cd52fb8103fd387",
+    "createdAt": "2026-08-15T11:00:39.431Z",
+    "updatedAt": "2026-08-15T11:02:39.379Z",
+    "name": "pal",
+    "email": "pa@gmail.com",
+    "password": "$2b$10$d.dq00eoaB5QIROcQUiGBO.prTo85Gv..R0U3QB0CUAhU7oL7DRC2",
+    "city": "Delhi",
+    "locality": "Hauz Khas",
+    "budget": 15000,
+    "gender": "Female",
+    "preferredGender": "Female",
+    "foodPreference": "Veg",
+    "socialLevel": 4,
+    "guestFrequency": "Occasionally",
+    "cleanliness": 4,
+    "sleepCondition": "Lights off",
+    "noiseHabit": "Silent",
+    "smoking": "No",
+    "okayWithSmoker": "No",
+    "drinking": "No",
+    "okayWithDrinker": "No",
+    "jobStatus": "Student",
+    "preferredJobStatus": "Student",
+    "dailySchedule": "Mostly daytime",
+    "okayDifferentSchedule": "Yes",
+    "workMode": "",
+    "quietDuringWork": "",
+    "nonNegotiables": [
+      "noise"
+    ]
+  }
+]

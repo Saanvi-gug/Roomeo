@@ -1,5 +1,4 @@
 
-// MOCK API
 
 import axios from "axios";
 import {
@@ -88,7 +87,7 @@ let session = {
 
 let requests = mockIncomingRequests.map((r) => ({ ...r }));
 
-// AUTH
+
 
 export async function signup({ name, email, password }) {
   if (!name || !email || !password) {
@@ -139,7 +138,7 @@ export function isAuthenticated() {
   return !!localStorage.getItem("token");
 }
 
-// PROFILE
+
 
 export async function getProfile() {
   const userId = getUserId();
@@ -192,7 +191,7 @@ export async function saveProfile(answers) {
   return { ...session.profile };
 }
 
-// MATCHES
+
 
 export async function getMatches() {
   await wait(700);
@@ -367,7 +366,7 @@ export async function sendRequest(matchId) {
   };
 }
 
-// REQUESTS
+
 
 export async function getIncomingRequests() {
   await wait(450);

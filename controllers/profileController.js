@@ -1,63 +1,46 @@
 const User = require("../models/User");
 
-// CREATE / UPDATE PROFILE
 const saveProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
 
-    try {
-
-        const { id } = req.params;
-
-     const updatedUser = await User.findByIdAndUpdate(
-    id,
-    req.body,
-    {
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      req.body,
+      {
         new: true,
         runValidators: true
-    }
-);
+      }
+    );
 
-        res.status(200).json({
-            message: "Profile Saved Successfully",
-            user: updatedUser
-        });
-
-    } catch (error) {
-
-        console.log(error);
-
-        res.status(500).json({
-            message: "Server Error"
-        });
-
-    }
-
+    res.status(200).json({
+      message: "Profile Saved Successfully",
+      user: updatedUser
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Server Error"
+    });
+  }
 };
 
-// GET PROFILE
-
 const getProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
 
-    try {
+    const user = await User.findById(id);
 
-        const { id } = req.params;
-
-        const user = await User.findById(id);
-
-        res.status(200).json(user);
-
-    } catch (error) {
-
-        console.log(error);
-
-        res.status(500).json({
-            message: "Server Error"
-        });
-
-    }
-
+    res.status(200).json(user);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Server Error"
+    });
+  }
 };
 
 module.exports = {
-    saveProfile,
-    getProfile
+  saveProfile,
+  getProfile
 };
